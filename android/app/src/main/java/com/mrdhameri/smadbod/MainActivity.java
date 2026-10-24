@@ -212,7 +212,16 @@ public final class MainActivity extends Activity {
         new AlertDialog.Builder(this)
             .setTitle(item.optString("date")+" · Year "+item.optString("year")+" "+item.optString("className"))
             .setView(scroll)
-            .setPositiveButton("Open MOEIS",(d,w)->openExternal(Uri.parse(MOEIS)))
+            .setPositiveButton("Host review",(d,w)->{
+                new AlertDialog.Builder(this)
+                    .setTitle("Approve handoff")
+                    .setMessage("Approve this guest attendance handoff for KPM review? The official system is not edited automatically.")
+                    .setPositiveButton("Approve and open",(a,b)->{
+                        BridgeClient.preferences(this).edit().putLong("review_"+packetId,System.currentTimeMillis()).apply();
+                        openExternal(Uri.parse(MOEIS));
+                    })
+                    .setNegativeButton("Not yet",null).show();
+            })
             .setNeutralButton("Remove from inbox",(d,w)->new AlertDialog.Builder(this)
                 .setMessage("Remove this notification only? This does NOT confirm KPM attendance.")
                 .setPositiveButton("Remove",(d2,w2)->io.execute(()->{
