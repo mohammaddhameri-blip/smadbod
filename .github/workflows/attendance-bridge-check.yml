@@ -1,0 +1,26 @@
+name: Attendance Bridge integrity
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bridge-extension/**'
+      - 'catalog.js'
+      - '.github/workflows/attendance-bridge-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check extension JavaScript and manifest
+        run: |
+          node --check bridge-extension/background.js
+          node --check bridge-extension/popup.js
+          node --check bridge-extension/moeis-overlay.js
+          node --check catalog.js
+          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('bridge-extension/manifest.json','utf8')); if(m.manifest_version!==3) process.exit(1); for(const f of ['bridge-extension/popup.html','bridge-extension/icons/icon.png','bridge-extension/moeis-overlay.js']) if(!fs.existsSync(f)) process.exit(1)"
