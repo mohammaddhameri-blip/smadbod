@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102d26">
+  <meta name="description" content="SMADBOD — a chalkboard-first classroom hub and teaching app library.">
+  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./style.css">
+  <title>SMADBOD · Classroom Blackboard</title>
+</head>
+<body>
+<main id="main">
+  <section id="chalkScreen" class="chalk-screen" aria-label="Interactive blackboard">
+    <header class="board-top">
+      <div class="board-title"><span class="brand-mark">✳</span> SMADBOD <span class="brand-sub">BLACKBOARD</span></div>
+      <div class="board-session"><span class="dot-online"></span><span id="boardName">Untitled board</span><span id="saveState">Saved on this device</span></div>
+    </header>
+    <div id="boardFrame" class="board-frame">
+      <canvas id="chalkCanvas" aria-label="Drawing canvas: use chalk to draw on the blackboard"></canvas>
+      <div id="emptyBoard" class="board-empty" aria-hidden="true"><span>SMADBOD</span><small>Your teaching starts here.</small></div>
+    </div>
+    <div class="left-tools" role="toolbar" aria-label="Blackboard tools">
+      <button id="chalkTool" class="tool active" data-tool="chalk" title="Chalk" aria-label="Draw with chalk">✎</button>
+      <button id="eraserTool" class="tool" data-tool="eraser" title="Eraser" aria-label="Erase strokes">▤</button>
+      <button id="textTool" class="tool" data-tool="text" title="Add text" aria-label="Add text">T</button>
+      <div class="tool-divider"></div>
+      <button class="color-swatch chosen" data-color="#f3f5eb" aria-label="White chalk" style="--swatch:#f3f5eb"></button>
+      <button class="color-swatch" data-color="#fbd665" aria-label="Yellow chalk" style="--swatch:#fbd665"></button>
+      <button class="color-swatch" data-color="#b5e4c9" aria-label="Green chalk" style="--swatch:#b5e4c9"></button>
+      <button class="color-swatch" data-color="#f5a8ae" aria-label="Pink chalk" style="--swatch:#f5a8ae"></button>
+      <div class="tool-divider"></div>
+      <label class="size-label" for="chalkWidth">Size</label>
+      <input id="chalkWidth" type="range" min="2" max="14" value="4" aria-label="Chalk size">
+    </div>
+    <div class="right-actions">
+      <button id="bell" class="bell" aria-label="Open teacher app library: six rapid taps" title="SMADBOD library"><span>🔔</span><span id="bellDots" class="bell-dots" aria-hidden="true"></span></button>
+    </div>
+    <footer class="board-footer">
+      <div class="bottom-tools">
+        <button id="undo" class="bottom-btn" title="Undo">↶ <span>Undo</span></button>
+        <button id="redo" class="bottom-btn" title="Redo">↷ <span>Redo</span></button>
+        <button id="clearBoard" class="bottom-btn" title="Clear board">⌫ <span>Clear</span></button>
+      </div>
+      <div class="bottom-tools">
+        <button id="boardList" class="bottom-btn" title="Saved boards">▤ <span>Boards</span></button>
+        <button id="saveBoard" class="bottom-btn primary"><span>⇩</span> Save board</button>
+      </div>
+    </footer>
+  </section>
+  <section id="library" class="library hidden" aria-label="Teaching application library" aria-hidden="true">
+    <header class="library-head">
+      <div><div class="eyebrow">TEACHING DASHBOARD</div><h1>SMADBOD <span>Library</span></h1><p>Everything you need for the classroom, in one place.</p></div>
+      <button id="backToBoard" class="back-btn">← Back to blackboard</button>
+    </header>
+    <div class="library-inner">
+      <div class="library-tools"><label class="search-box">⌕ <input id="librarySearch" type="search" placeholder="Search your apps & tools" autocomplete="off"></label><span id="appCount"></span></div>
+      <div id="tiles" class="tiles"></div>
+      <section id="tileDetail" class="detail hidden" aria-live="polite"><div class="detail-top"><div><div id="detailMeta" class="eyebrow"></div><h2 id="detailTitle"></h2></div><button id="closeDetail" class="back-btn">← All tiles</button></div><div id="detailContent"></div></section>
+      <footer class="library-foot">SMADBOD © · Blackboard-first learning hub <span>Local prototype • GitHub app links</span></footer>
+    </div>
+  </section>
+</main>
+<dialog id="boardDialog" class="modal"><form method="dialog"><h2>My blackboards</h2><p>Boards are saved locally on this device.</p><div id="savedBoardList" class="saved-list"></div><div class="modal-actions"><button value="cancel" class="back-btn">Close</button><button id="exportBoard" type="button" class="back-btn">Export PNG</button><button id="newBoard" type="button" class="action-btn">+ New board</button></div></form></dialog>
+<dialog id="textDialog" class="modal"><form method="dialog"><h2>Add chalk text</h2><label for="chalkText">Text to place</label><textarea id="chalkText" rows="3" placeholder="Type your classroom note..."></textarea><div class="modal-actions"><button value="cancel" class="back-btn">Cancel</button><button id="insertText" value="ok" class="action-btn" type="button">Place text</button></div></form></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="./catalog.js"></script><script src="./app.js"></script>
+</body>
+</html>
