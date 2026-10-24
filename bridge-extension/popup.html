@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMADBOD Bridge</title>
+<style>body{font:14px system-ui;background:#eef3ee;color:#193c30;margin:0;width:350px}header{background:#1c4435;color:white;padding:14px;font-size:18px;font-weight:700}main{padding:12px}section{background:white;border-radius:12px;padding:12px;margin-bottom:12px}input{width:95%;padding:8px;border:1px solid #aac3b4;border-radius:7px}button{margin:6px 4px 4px 0;padding:9px;border:0;border-radius:7px;background:#245641;color:white;cursor:pointer}p{color:#566b60;font-size:12px;line-height:1.5}.item{border-top:1px solid #e7ebe8;margin-top:8px;padding-top:8px}small{color:#69776e}</style></head>
+<body><header>🔔 SMADBOD Attendance Bridge</header><main>
+<section><h3>Pair work PC</h3><p>Use the pairing code to connect Skorskal on your other device to this browser extension.</p>
+<input id="pairCode" type="text" readonly aria-label="Pairing code">
+<button id="copyPair">Copy code</button><button id="newPair">New pairing</button></section>
+<section><h3>Attendance inbox</h3><button id="checkNow">Check now</button><div id="pending"></div></section>
+<p id="status" role="status"></p><small>Opens MOEIS for teacher review. Does not sign in, change official records, or submit attendance.</small>
+</main><script src="popup.js"></script></body></html>
