@@ -5,6 +5,8 @@ on:
     paths:
       - 'bridge-extension/**'
       - 'catalog.js'
+      - 'app.js'
+      - 'sw.js'
       - 'bridge-extension/tests/**'
       - '.github/workflows/attendance-bridge-check.yml'
   workflow_dispatch:
@@ -24,6 +26,8 @@ jobs:
           node --check bridge-extension/popup.js
           node --check bridge-extension/moeis-overlay.js
           node --check catalog.js
+          node --check app.js
+          node --check sw.js
           node --check bridge-extension/tests/handshake.mjs
           node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('bridge-extension/manifest.json','utf8')); if(m.manifest_version!==3) process.exit(1); for(const f of ['bridge-extension/popup.html','bridge-extension/icons/icon.png','bridge-extension/moeis-overlay.js']) if(!fs.existsSync(f)) process.exit(1)"
       - name: Test sealed queue with synthetic attendance
