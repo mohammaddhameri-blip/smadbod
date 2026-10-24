@@ -10,15 +10,24 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 const safeStore = (key, value) => {try{localStorage.setItem(key, JSON.stringify(value));return true}catch{toast('Storage is full or unavailable. Please export your board.');return false}};
 const safeRead = (key, fallback) => {try {return JSON.parse(localStorage.getItem(key)) ?? fallback}catch{return fallback}};
 let toastTimer; function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3000)}
-function newBoard(name='Untitled board'){return {id:uuid(),name,items:[],updatedAt:Date.now()}}
+function newBoard(name='Subject'){return {id:uuid(),name,items:[],updatedAt:Date.now()}}
 let boards=safeRead(boardKey,[]);if(!Array.isArray(boards)||!boards.length)boards=[newBoard()];
 let currentBoard=boards.find(b=>b.id===safeRead(currentKey,null)) || boards[0];
+function uniqueName(input,ignoreId){
+  const original=(String(input??'').trim().slice(0,80)||'Subject');
+  const taken=n=>boards.some(b=>b.id!==ignoreId&&String(b.name).toLocaleLowerCase()===n.toLocaleLowerCase());
+  if(!taken(original))return original;
+  for(let i=2;i<10000;i++){const suffix=' '+i;const candidate=original.slice(0,80-suffix.length)+suffix;if(!taken(candidate))return candidate}
+  return original+' '+Date.now()
+}
+// Existing saved boards are retained; only untouched legacy default titles migrate.
+for(const b of boards){if(['Untitled board','New board'].includes(b.name)){b.name=uniqueName('Subject',b.id)}}
 let redoItems=[],saveTimer=null,tool='chalk',color='#f3f5eb',size=4,gesture=null,awaitingText=null;
 const canvas=$('chalkCanvas'),frame=$('boardFrame'),ctx=canvas.getContext('2d');
 function boardItems(){return currentBoard.items}
-function persistBoard(){currentBoard.updatedAt=Date.now();safeStore(boardKey,boards);safeStore(currentKey,currentBoard.id);$('saveState').textContent='Saved on this device'}
-function scheduleSave(){clearTimeout(saveTimer);$('saveState').textContent='Saving…';saveTimer=setTimeout(persistBoard,300)}
-function refreshBoardHeader(){$('boardName').textContent=currentBoard.name;$('emptyBoard').hidden=boardItems().length>0;$('undo').disabled=!boardItems().length;$('redo').disabled=!redoItems.length}
+function persistBoard(){currentBoard.updatedAt=Date.now();safeStore(boardKey,boards);safeStore(currentKey,currentBoard.id)}
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(persistBoard,300)}
+function refreshBoardHeader(){$('subjectDisplay').textContent=currentBoard.name;$('subjectDisplay').title='Rename '+currentBoard.name;$('emptyBoard').hidden=boardItems().length>0;$('undo').disabled=!boardItems().length;$('redo').disabled=!redoItems.length}
 function pos(e){const r=canvas.getBoundingClientRect();return {x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))}}
 function sizeScale(){return Math.min(frame.clientWidth,frame.clientHeight)/650}
 function paintStroke(item){if(!item.points?.length)return;ctx.save();ctx.globalCompositeOperation=item.kind==='eraser'?'destination-out':'source-over';ctx.strokeStyle=item.kind==='eraser'?'#000':item.color;ctx.lineWidth=Math.max(1,item.size*sizeScale()*(item.kind==='eraser'?3:1));ctx.lineCap='round';ctx.lineJoin='round';ctx.globalAlpha=item.kind==='eraser'?1:0.92;ctx.beginPath();item.points.forEach((p,i)=>i?ctx.lineTo(p.x*frame.clientWidth,p.y*frame.clientHeight):ctx.moveTo(p.x*frame.clientWidth,p.y*frame.clientHeight));if(item.points.length===1){const p=item.points[0];ctx.lineTo((p.x*frame.clientWidth)+0.1,p.y*frame.clientHeight+0.1)}ctx.stroke();ctx.restore()}
@@ -44,8 +53,60 @@ $('clearBoard').addEventListener('click',()=>{if(!boardItems().length)return;if(
 function openSavedBoards(){const list=$('savedBoardList');list.innerHTML='';boards.slice().sort((a,b)=>b.updatedAt-a.updatedAt).forEach(b=>{const row=document.createElement('div');row.className='saved-board';const open=document.createElement('button');open.type='button';open.textContent=b.name+(b.id===currentBoard.id?' ✓':'');open.onclick=()=>{persistBoard();currentBoard=b;redoItems=[];$('boardDialog').close();resize();persistBoard()};const del=document.createElement('button');del.type='button';del.className='delete';del.textContent='Delete';del.setAttribute('aria-label','Delete '+b.name);del.onclick=()=>{if(boards.length===1){toast('Keep at least one blackboard');return}if(!confirm(`Delete board “${b.name}”?`))return;boards=boards.filter(x=>x.id!==b.id);if(currentBoard.id===b.id)currentBoard=boards[0];persistBoard();resize();openSavedBoards()};row.append(open,del);list.append(row)});$('boardDialog').showModal()}
 $('boardList').addEventListener('click',openSavedBoards);
 $('exportBoard').addEventListener('click',()=>{const exported=document.createElement('canvas');exported.width=canvas.width;exported.height=canvas.height;const c=exported.getContext('2d');c.fillStyle='#173a30';c.fillRect(0,0,exported.width,exported.height);c.drawImage(canvas,0,0);const a=document.createElement('a');a.href=exported.toDataURL('image/png');a.download=(currentBoard.name.replace(/[^a-z0-9 -]/gi,'').trim()||'smadbod-board')+'.png';a.click();toast('Blackboard exported as a PNG picture')});
-$('newBoard').addEventListener('click',()=>{let name=prompt('Name your new blackboard:','New board');if(name===null)return;name=name.trim().slice(0,80)||'New board';persistBoard();currentBoard=newBoard(name);boards.push(currentBoard);redoItems=[];persistBoard();resize();$('boardDialog').close();toast('New blackboard created')});
-$('saveBoard').addEventListener('click',()=>{const name=prompt('Save blackboard as:',currentBoard.name);if(name===null)return;currentBoard.name=name.trim().slice(0,80)||'Untitled board';persistBoard();redraw();toast('Blackboard saved on this device')});
+$('newBoard').addEventListener('click',()=>{persistBoard();currentBoard=newBoard(uniqueName('Subject'));boards.push(currentBoard);redoItems=[];persistBoard();resize();$('boardDialog').close();toast('Created '+currentBoard.name)});
+$('saveBoard').addEventListener('click',()=>{clearTimeout(saveTimer);persistBoard();toast('Saved '+currentBoard.name+' on this device')});
+
+// Edit board name directly by tapping the subject heading. Enter or blur commits; Escape cancels.
+const subjectDisplay=$('subjectDisplay'),subjectInput=$('subjectInput');
+subjectDisplay.addEventListener('click',()=>{
+  subjectInput.value=currentBoard.name;subjectDisplay.hidden=true;subjectInput.hidden=false;
+  subjectInput.focus();subjectInput.select();
+});
+subjectInput.addEventListener('blur',()=>{
+  if(subjectInput.hidden)return;
+  currentBoard.name=uniqueName(subjectInput.value,currentBoard.id);
+  subjectInput.hidden=true;subjectDisplay.hidden=false;
+  refreshBoardHeader();scheduleSave();
+});
+subjectInput.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();subjectInput.blur()}
+  if(e.key==='Escape'){e.preventDefault();subjectInput.hidden=true;subjectDisplay.hidden=false;subjectInput.value=currentBoard.name;subjectDisplay.focus()}
+});
+// Left tools remain open for 30 seconds after the latest panel interaction.
+const leftTools=$('leftTools'),toggleTools=$('toggleTools'),toolOptions=$('toolOptions');
+let toolsTimeout=null;
+function setToolsOpen(open){
+  clearTimeout(toolsTimeout);
+  leftTools.classList.toggle('is-open',open);
+  toggleTools.setAttribute('aria-expanded',String(open));
+  toggleTools.setAttribute('aria-label',open?'Collapse drawing tools':'Expand drawing tools');
+  toolOptions.setAttribute('aria-hidden',String(!open));
+  if(open)toolsTimeout=setTimeout(()=>setToolsOpen(false),30000);
+}
+toggleTools.addEventListener('click',()=>setToolsOpen(!leftTools.classList.contains('is-open')));
+for(const action of ['click','input','pointerdown','keydown']){
+  toolOptions.addEventListener(action,()=>{if(leftTools.classList.contains('is-open'))setToolsOpen(true)});
+}
+document.querySelectorAll('[data-bottom-action]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.bottomAction).click()));
+// Live analog clock and date always reflect the device's local time.
+const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const shortDays=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const shortMonths=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function updateClockDate(){
+  const d=new Date(), h=d.getHours(),m=d.getMinutes(),sec=d.getSeconds();
+  $('hourHand').style.transform='rotate('+((h%12)*30+m/2+sec/120)+'deg)';
+  $('minuteHand').style.transform='rotate('+(m*6+sec/10)+'deg)';
+  $('secondHand').style.transform='rotate('+(sec*6)+'deg)';
+  const n=d.getDate(),ordinal=((n%100>=11&&n%100<=13)?'th':({1:'st',2:'nd',3:'rd'}[n%10]||'th'));
+  const compact=window.innerWidth<=760;
+  const label=compact?shortDays[d.getDay()]+', '+n+' '+shortMonths[d.getMonth()]+' '+d.getFullYear():days[d.getDay()]+', '+n+ordinal+' '+months[d.getMonth()]+', '+d.getFullYear();
+  const dateEl=$('liveDate');dateEl.textContent=label;
+  dateEl.dateTime=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(n).padStart(2,'0');
+  $('liveClock').setAttribute('aria-label','Current local time: '+d.toLocaleTimeString());
+}
+updateClockDate();setInterval(updateClockDate,1000);
+
 window.addEventListener('keydown',e=>{if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();$('undo').click()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();persistBoard();toast('Blackboard saved on this device')}});
 // Six rapid bell taps are a convenience gesture, NOT an access-control mechanism.
 let taps=0,firstTap=0;const bell=$('bell');bell.addEventListener('click',()=>{const now=Date.now();if(!firstTap||now-firstTap>3000){firstTap=now;taps=0}taps++;$('bellDots').textContent='●'.repeat(taps);if(taps>=6){taps=0;firstTap=0;$('bellDots').textContent='';openLibrary()}else setTimeout(()=>{if(Date.now()-firstTap>=3000){taps=0;$('bellDots').textContent='';firstTap=0}},3100)});
