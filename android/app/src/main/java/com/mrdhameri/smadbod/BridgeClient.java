@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import java.io.OutputStream;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -100,7 +101,14 @@ public final class BridgeClient {
             int status=connection.getResponseCode();
             InputStream input=status<400?connection.getInputStream():connection.getErrorStream();
             byte[] answer;
-            try(InputStream in=input){answer=in.readNBytes(150000);}
+            try(InputStream in=input; ByteArrayOutputStream out=new ByteArrayOutputStream()){
+                byte[] buf=new byte[4096];int len;int total=0;
+                while((len=in.read(buf))!=-1){
+                    total+=len;if(total>150000)throw new IllegalStateException("Bridge response too large");
+                    out.write(buf,0,len);
+                }
+                answer=out.toByteArray();
+            }
             JSONObject parsed=new JSONObject(new String(answer,StandardCharsets.UTF_8));
             if(status>=400||!parsed.optBoolean("ok",false))
                 throw new IllegalStateException("Attendance queue unavailable ("+status+").");
