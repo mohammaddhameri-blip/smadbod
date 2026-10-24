@@ -1,0 +1,99 @@
+name: Build SMADBOD Master APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - '.github/workflows/build-master-android.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: smadbod-master-apk-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SMADBOD_BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - uses: actions/cache/restore@v4
+        id: signer-cache
+        with:
+          path: ~/.android/smadbod-publisher.keystore
+          key: smadbod-master-stable-publisher-v1
+      - name: Recover or initialize publisher signing key
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.android"
+          STORE="$HOME/.android/smadbod-publisher.keystore"
+          if [[ ! -s "$STORE" ]]; then
+            NOTES=$(gh release view master-android-latest --json body --jq '.body' 2>/dev/null || true)
+            if echo "$NOTES" | grep -q '^MASTER_SIGNER_SHA256='; then
+              echo "::error::Publisher signing key missing. Recover the same signer before another update."
+              exit 1
+            fi
+            keytool -genkeypair -noprompt -storetype PKCS12 -keystore "$STORE" \
+              -storepass android -keypass android -alias smadbod -keyalg RSA \
+              -keysize 3072 -validity 10000 \
+              -dname "CN=SMADBOD Master, OU=Education, O=MrDhameri, C=MY"
+          fi
+          HASH=$(keytool -list -v -keystore "$STORE" -storepass android -alias smadbod | sed -n 's/^[[:space:]]*SHA256: //p' | head -n1 | tr -d ':' | tr '[:lower:]' '[:upper:]')
+          if [[ ! "$HASH" =~ ^[A-F0-9]{64}$ ]]; then echo "::error::Invalid signer"; exit 1; fi
+          echo "MASTER_SIGNER_SHA256=$HASH" >> "$GITHUB_ENV"
+      - uses: actions/cache/save@v4
+        if: steps.signer-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.android/smadbod-publisher.keystore
+          key: smadbod-master-stable-publisher-v1
+      - name: Build signed master APK
+        run: gradle --no-daemon -p android :app:assembleRelease
+      - name: Verify APK signature and checksum
+        shell: bash
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" > signature.txt
+          HASH=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' signature.txt | head -n1 | tr '[:lower:]' '[:upper:]')
+          test "$HASH" = "$MASTER_SIGNER_SHA256"
+          cp "$APK" SMADBOD-Master.apk
+          sha256sum SMADBOD-Master.apk > SMADBOD-Master.apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SMADBOD-Master-APK
+          path: SMADBOD-Master.apk
+          if-no-files-found: error
+      - name: Publish latest official master APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG=master-android-latest
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" SMADBOD-Master.apk SMADBOD-Master.apk.sha256 --clobber
+          else
+            gh release create "$TAG" SMADBOD-Master.apk SMADBOD-Master.apk.sha256 \
+              --target "$GITHUB_SHA" --title "SMADBOD Master Android APK" \
+              --notes "Preparing master update metadata" --prerelease
+          fi
+          gh release edit "$TAG" --notes "MASTER_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
+          MASTER_VERSION_NAME=0.4.$GITHUB_RUN_NUMBER
+          MASTER_SIGNER_SHA256=$MASTER_SIGNER_SHA256
+          
+          Personal master SMADBOD APK. Includes a background attendance inbox.
+          Background polling approximately every 15 minutes or later due to Android scheduling.
+          MOEIS opens for manual login, review and submission; no automatic editing.
+          Android package installer confirms each update."
