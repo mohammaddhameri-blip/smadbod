@@ -1,4 +1,4 @@
-# SMADBOD — working prototype (v0.1)
+# SMADBOD — working prototype (v0.2)
 
 A standalone, responsive, installable blackboard-first teaching hub designed for the school smartboard, desktop, and mobile browsers.
 
@@ -15,6 +15,9 @@ Visit `http://localhost:8080`. On a phone/tablet within the same trusted network
 ## What works now
 
 - Full-screen interactive traditional dark-green blackboard with finger/mouse/stylus chalk, eraser, text tool, colour picker, undo/redo, named boards, local autosave, export to PNG and touchscreen resizing.
+- **Compact blackboard controls (v0.2):** Pencil button opens the left drawing tools; the panel automatically closes 30 seconds after its most recent interaction. Includes pen, eraser, text, chalk colours, brush size, undo, redo and clear. Undo/redo, red X clear, ••• boards, and 💾 save are also accessible through the bottom icon-only toolbar.
+- **Subject is the board name:** Click the top-left name to edit, then press Enter or click outside to save (Escape cancels). New boards are named Subject, Subject 2, Subject 3, etc.; duplicate names receive numeric suffixes. Previously saved custom names and drawings are retained.
+- **Always-visible live clock and date:** The analog clock occupies the top centre and the day/date/year the top-right. Both use the device's local clock and update automatically. The date is shortened on narrow phone screens without being hidden.
 - Six **rapid** bell clicks/taps within three seconds open the application library. The gesture is **not** authentication or access control.
 - Seven categories: Attendance, Year 2, Year 5, Year 6, Educational Games, Educational Tools, Homework. Click tiles to list the current known resources.
 - Catalog is declared in `catalog.js` and separates verified webapp URLs from GitHub repository source links. No unverified GitHub Pages site is presented as a verified webapp. Add/verify publication URLs as each project comes online.
