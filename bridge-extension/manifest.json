@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "SMADBOD Attendance Bridge",
+  "version": "0.1.0",
+  "description": "Private encrypted attendance handoff from SMADBOD/Skorskal to a personal work PC. Opens MOEIS for manual review; never logs in or submits.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://qekcgsfeomjckctiubgm.supabase.co/*"
+  ],
+  "action": {
+    "default_title": "SMADBOD Attendance Bridge",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://moeispel.moe.gov.my/*"
+      ],
+      "js": [
+        "moeis-overlay.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
