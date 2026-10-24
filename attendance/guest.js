@@ -1,0 +1,165 @@
+import {submitAttendance,parsePairing} from './bridge.js';
+
+const $=id=>document.getElementById(id);
+let roster=[],revision='',busy=false;
+const LABELS={C:'CEMERLANG',G:'GEMILANG',T:'TERBILANG'};
+const PAIR_MEMORY='smadbod_guest_master_pair';
+const DRAFT='smadbod_guest_drafts_2026';
+const byte64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+function localDate(){
+ const d=new Date();
+ return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+}
+function liveClock(){
+ $('liveDay').textContent=new Intl.DateTimeFormat('en-MY',{weekday:'long',day:'numeric',month:'short',year:'numeric'}).format(new Date());
+}
+liveClock();setInterval(liveClock,60000);
+$('date').value=localDate();$('year').value='5';$('classCode').value='T';
+try{$('pairing').value=sessionStorage.getItem(PAIR_MEMORY)||localStorage.getItem(PAIR_MEMORY)||'';
+ $('rememberPair').checked=Boolean(localStorage.getItem(PAIR_MEMORY));}catch{}
+function notify(id,text){$(id).textContent=text}
+function sessionKey(){return $('date').value+'|'+$('year').value+'|'+$('classCode').value}
+function readDraft(){
+ try{let drafts=JSON.parse(sessionStorage.getItem(DRAFT)||'{}');let draft=drafts[sessionKey()];
+   if(draft&&Array.isArray(draft.absent)&&draft.absent.length<=200)return draft;
+ }catch{}
+ return {absent:[],reasons:{}};
+}
+function writeDraft(draft){
+ try{
+  const data=JSON.parse(sessionStorage.getItem(DRAFT)||'{}');
+  data[sessionKey()]={absent:[...new Set(draft.absent)],reasons:draft.reasons};
+  sessionStorage.setItem(DRAFT,JSON.stringify(data));
+ }catch{}
+}
+async function decryptRoster(secret){
+ if(!secret||!secret.trim())throw Error('Enter your private roster access phrase.');
+ if(!crypto?.subtle||!('DecompressionStream'in window))throw Error('Update to a modern Chrome/Edge browser that supports secure roster access.');
+ const res=await fetch('./roster-2026.json',{cache:'no-store'});
+ if(!res.ok)throw Error('SMADBOD encrypted roster unavailable. Please refresh or reconnect.');
+ const enc=await res.json();
+ if(enc.academicYear!==2026||enc.algorithm!=='PBKDF2-SHA256-250000+AES-256-GCM+zlib')throw Error('Unsupported official roster format.');
+ const pass=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'PBKDF2',false,['deriveKey']);
+ const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:byte64(enc.salt),iterations:250000,hash:'SHA-256'},pass,{name:'AES-GCM',length:256},false,['decrypt']);
+ let raw;
+ try{raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:byte64(enc.iv),additionalData:new TextEncoder().encode('skorskal-roster-2026')},key,byte64(enc.data));}
+ catch{throw Error('Incorrect roster phrase or damaged encrypted roster.')}
+ const stream=new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate'));
+ const rows=JSON.parse(await new Response(stream).text());
+ if(!Array.isArray(rows)||rows.length!==enc.count||rows.length<1)throw Error('Incomplete roster.');
+ const ids=new Set();
+ const pupils=rows.map(row=>{
+  if(!Array.isArray(row)||row.length!==4)throw Error('Invalid pupil record.');
+  const [year,classCode,examNo,name]=row.map(x=>String(x).trim());
+  const id=year+classCode+'-'+examNo;
+  if(!/^[1-6]$/.test(year)||!['C','G','T'].includes(classCode)||!/^[0-9]{2}$/.test(examNo)||!name||ids.has(id))throw Error('Invalid or duplicated pupil ID.');
+  ids.add(id);return {year,classCode,examNo,name,id};
+ });
+ return {pupils,version:enc.version};
+}
+$('unlock').addEventListener('click',async()=>{
+ const button=$('unlock');button.disabled=true;
+ notify('rosterStatus','Opening encrypted 2026 roster…');
+ try{
+  const decrypted=await decryptRoster($('rosterPhrase').value);
+  roster=decrypted.pupils;revision=decrypted.version;
+  $('rosterPhrase').value='';
+  $('unlockPane').hidden=true;$('register').hidden=false;$('handoff').hidden=false;
+  notify('rosterStatus',roster.length+' pupils available.');
+  draw();
+ }catch(e){notify('rosterStatus',e.message)}
+ finally{button.disabled=false}
+});
+$('rosterPhrase').addEventListener('keydown',e=>{if(e.key==='Enter')$('unlock').click()});
+function selected(){
+ const year=$('year').value,cls=$('classCode').value;
+ return roster.filter(p=>p.year===year&&p.classCode===cls).sort((a,b)=>Number(a.examNo)-Number(b.examNo)||a.name.localeCompare(b.name));
+}
+function updateTotals(){
+ const current=selected(),draft=readDraft(),absent=new Set(draft.absent);
+ $('total').textContent=current.length;
+ $('absent').textContent=current.filter(p=>absent.has(p.id)).length;
+ $('present').textContent=current.length-Number($('absent').textContent);
+}
+function draw(){
+ const current=selected(),draft=readDraft(),absent=new Set(draft.absent);
+ $('rosterMeta').textContent='2026 roster · '+revision;
+ const list=$('pupils');list.replaceChildren();
+ if(!current.length){notify('deliveryStatus','No pupils found in this class. Check year/class.');updateTotals();return}
+ for(const pupil of current){
+  const card=document.createElement('div');card.className='pupil';
+  let isAbsent=absent.has(pupil.id);
+  card.classList.toggle('is-absent',isAbsent);
+  const label=document.createElement('label');label.className='pupil-row';
+  const box=document.createElement('input');box.type='checkbox';box.checked=!isAbsent;
+  box.setAttribute('aria-label',pupil.name+' present');
+  const no=document.createElement('span');no.className='pupil-no';no.textContent=pupil.examNo;
+  const name=document.createElement('strong');name.className='pupil-name';name.textContent=pupil.name;
+  const state=document.createElement('span');state.className='pupil-state';state.textContent=isAbsent?'Absent':'Present';
+  label.append(box,no,name,state);
+  const reason=document.createElement('input');reason.className='reason';reason.type='text';
+  reason.maxLength=140;reason.placeholder='Optional absence reason (verify KPM category)';
+  reason.setAttribute('aria-label','Absence reason for '+pupil.name);
+  reason.value=draft.reasons[pupil.id]||'';reason.hidden=!isAbsent;
+  box.addEventListener('change',()=>{
+   const now=readDraft(),set=new Set(now.absent);
+   if(box.checked){set.delete(pupil.id);delete now.reasons[pupil.id]}
+   else set.add(pupil.id);
+   now.absent=[...set];writeDraft(now);draw();
+  });
+  reason.addEventListener('input',()=>{
+   const now=readDraft();now.reasons[pupil.id]=reason.value;writeDraft(now);
+  });
+  card.append(label,reason);list.append(card);
+ }
+ updateTotals();
+}
+for(const id of ['date','year','classCode'])$(id).addEventListener('change',()=>{
+ notify('deliveryStatus','Changes are local; press Send to Master when ready.');
+ draw();
+});
+$('markAll').addEventListener('click',()=>{
+ if(!confirm('Mark every pupil present for this class and date?'))return;
+ writeDraft({absent:[],reasons:{}});draw();
+});
+$('forget').addEventListener('click',()=>{
+ $('pairing').value='';$('rememberPair').checked=false;
+ try{sessionStorage.removeItem(PAIR_MEMORY);localStorage.removeItem(PAIR_MEMORY)}catch{}
+ notify('deliveryStatus','Receiver pairing cleared from this guest device.');
+});
+$('send').addEventListener('click',async()=>{
+ if(busy||!roster.length)return;
+ const current=selected();
+ if(!current.length){notify('deliveryStatus','Choose a class with registered pupils.');return}
+ const drafts=readDraft(),absent=new Set(drafts.absent);
+ const rawCodes=$('pairing').value.split(/[\n\r,;]+/).map(x=>x.trim()).filter(Boolean);
+ const codes=[...new Set(rawCodes)];
+ try{
+  if(!codes.length||codes.length>3)throw Error('Enter 1–3 private Master/PC codes, one per line.');
+  for(const code of codes)parsePairing(code);
+ }catch(e){notify('deliveryStatus',e.message);return}
+ const date=$('date').value,year=$('year').value,classCode=$('classCode').value;
+ if(!/^20\d\d-\d\d-\d\d$/.test(date)){notify('deliveryStatus','Select a valid date.');return}
+ const payload={schema:'smadbod.attendance.v1',source:'smadbod-guest',rosterVersion:revision,
+  date,year,classCode,className:LABELS[classCode],preparedAt:new Date().toISOString(),
+  pupils:current.map(p=>({id:p.id,examNo:p.examNo,name:p.name,present:!absent.has(p.id),
+    reason:absent.has(p.id)?String(drafts.reasons[p.id]||'').trim().slice(0,140):''}))};
+ const count=payload.pupils.filter(p=>!p.present).length;
+ if(!confirm('Send '+date+' · Year '+year+' '+LABELS[classCode]+' to '+codes.length+' Master/PC device(s)?\n'+(current.length-count)+' present · '+count+' absent.\nOfficial KPM attendance will NOT be changed by this action.'))return;
+ busy=true;$('send').disabled=true;
+ let delivered=0;const errors=[];
+ for(let i=0;i<codes.length;i++){
+  notify('deliveryStatus','Encrypting and sending to receiver '+(i+1)+' of '+codes.length+'…');
+  try{await submitAttendance(codes[i],payload);delivered++}
+  catch(e){errors.push('Device '+(i+1)+': '+e.message)}
+ }
+ if(delivered){
+  try{
+   if($('rememberPair').checked)localStorage.setItem(PAIR_MEMORY,codes.join('\n'));
+   else localStorage.removeItem(PAIR_MEMORY);
+   sessionStorage.setItem(PAIR_MEMORY,codes.join('\n'));
+  }catch{}
+ }
+ notify('deliveryStatus',delivered+' of '+codes.length+' encrypted handoffs queued. '+(delivered?'Awaiting HOST review; KPM remains unchanged. ':'')+(errors.length?errors.join('; '):''));
+ busy=false;$('send').disabled=false;
+});
