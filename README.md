@@ -1,5 +1,11 @@
 # SMADBOD — working prototype (v0.2)
 
+## SMADBOD Master Android APK — private work-phone attendance receiver
+
+The [SMADBOD Master APK](https://github.com/mohammaddhameri-blip/smadbod/releases/tag/master-android-latest) runs the hub on Android and adds a native encrypted attendance inbox, phone notifications and direct MOEIS review launch. It receives a **separate private pairing code** from the Chrome/Edge PC bridge. Paste the phone and PC codes on separate lines in Skorskal's updated Attendance Bridge form to send to both devices.
+
+**Background notification delay:** WorkManager checks approximately every 15 minutes, but Android power optimizations can delay checks further. While the master app is open, the inbox refreshes roughly once per minute. Near-instant closed-app pushes require separate FCM setup. **This version never logs in to idMe or submits official MOEIS attendance.** Follow the [Android installation and pairing guide](android/README.md). Do not publish the pairing code.
+
 ## Attendance Bridge (personal beta)
 
 SMADBOD's **Attendance** tile opens Skorskal's official 2026 attendance roster in its Pupils tab. Teachers mark absentees once, then use the **Send to work PC** button to transmit a sealed AES-GCM encrypted packet to their own Chrome/Edge extension. The extension notifies the PC, opens the official MOEIS page after the teacher signs in normally, and displays a read-only attendance summary. KPM attendance is **not** automatically filled or submitted in this version. See [Attendance Bridge setup](bridge-extension/README.md). No idMe password or login cookie is collected.
