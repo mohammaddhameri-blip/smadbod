@@ -40,9 +40,9 @@ Before a production launch implement:
 
 ## Publishing
 
-Create a **separate GitHub repository** named `smadbod` and upload the *contents* of this folder to the repository root. Enable GitHub Pages from the root of `main`. Existing app projects are linked; their code does not need to be copied into SMADBOD.
+Source code has been published in the `mohammaddhameri-blip/smadbod` repository on the `main` branch. To host the website, open **Settings → Pages**, choose **Deploy from a branch**, select **main** and **/(root)**, and save. Once GitHub Pages finishes deploying, use `https://mohammaddhameri-blip.github.io/smadbod/`.
 
-**No GitHub push or Pages deployment was done for this ZIP.**
+**Publishing source code alone does not enable GitHub Pages.** Confirm that Pages is enabled before using the site on a smartboard. Existing apps remain in separate repositories.
 
 ## Project files
 
