@@ -8,6 +8,7 @@ on:
       - 'app.js'
       - 'sw.js'
       - 'bridge-extension/tests/**'
+      - 'attendance/**'
       - '.github/workflows/attendance-bridge-check.yml'
   workflow_dispatch:
 permissions:
@@ -26,9 +27,12 @@ jobs:
           node --check bridge-extension/popup.js
           node --check bridge-extension/moeis-overlay.js
           node --check catalog.js
+          node --check attendance/bridge.js
+          node --check attendance/guest.js
           node --check app.js
           node --check sw.js
           node --check bridge-extension/tests/handshake.mjs
+          node -e "const fs=require('fs'); const html=fs.readFileSync('attendance/index.html','utf8');for(const id of ['rosterPhrase','pairing','send','pupils'])if(!html.includes('id='+String.fromCharCode(34)+id+String.fromCharCode(34))) process.exit(1)"
           node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('bridge-extension/manifest.json','utf8')); if(m.manifest_version!==3) process.exit(1); for(const f of ['bridge-extension/popup.html','bridge-extension/icons/icon.png','bridge-extension/moeis-overlay.js']) if(!fs.existsSync(f)) process.exit(1)"
       - name: Test sealed queue with synthetic attendance
         run: node bridge-extension/tests/handshake.mjs
