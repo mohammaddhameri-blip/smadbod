@@ -1,0 +1,36 @@
+plugins { id 'com.android.application' }
+
+def buildNum = System.getenv('SMADBOD_BUILD_NUMBER')
+def revision = buildNum?.isInteger() ? Integer.parseInt(buildNum) : 1
+android {
+    namespace 'com.mrdhameri.smadbod'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.mrdhameri.smadbod'
+        minSdk 26
+        targetSdk 34
+        versionCode 100000 + revision
+        versionName "0.4.${revision}"
+    }
+    signingConfigs {
+        publisher {
+            storeFile file((System.getenv('HOME') ?: '/home/runner') + '/.android/smadbod-publisher.keystore')
+            storePassword 'android'
+            keyAlias 'smadbod'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.publisher
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+dependencies {
+    implementation 'androidx.work:work-runtime:2.10.2'
+}
