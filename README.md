@@ -1,5 +1,10 @@
 # SMADBOD — working prototype (v0.2)
 
+## Attendance Bridge (personal beta)
+
+SMADBOD's **Attendance** tile opens Skorskal's official 2026 attendance roster in its Pupils tab. Teachers mark absentees once, then use the **Send to work PC** button to transmit a sealed AES-GCM encrypted packet to their own Chrome/Edge extension. The extension notifies the PC, opens the official MOEIS page after the teacher signs in normally, and displays a read-only attendance summary. KPM attendance is **not** automatically filled or submitted in this version. See [Attendance Bridge setup](bridge-extension/README.md). No idMe password or login cookie is collected.
+
+
 A standalone, responsive, installable blackboard-first teaching hub designed for the school smartboard, desktop, and mobile browsers.
 
 ## Test locally
