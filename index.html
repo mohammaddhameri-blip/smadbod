@@ -14,14 +14,22 @@
 <main id="main">
   <section id="chalkScreen" class="chalk-screen" aria-label="Interactive blackboard">
     <header class="board-top">
-      <div class="board-title"><span class="brand-mark">✳</span> SMADBOD <span class="brand-sub">BLACKBOARD</span></div>
-      <div class="board-session"><span class="dot-online"></span><span id="boardName">Untitled board</span><span id="saveState">Saved on this device</span></div>
+      <div class="board-subject">
+        <button id="subjectDisplay" class="subject-display" type="button" title="Click to rename this board" aria-label="Rename subject">Subject</button>
+        <input id="subjectInput" class="subject-input" type="text" maxlength="80" aria-label="Subject name" hidden>
+      </div>
+      <div id="liveClock" class="live-clock" role="img" aria-label="Current time">
+        <div class="clock-face"><span class="clock-number n12">12</span><span class="clock-number n3">3</span><span class="clock-number n6">6</span><span class="clock-number n9">9</span><span id="hourHand" class="clock-hand hour-hand"></span><span id="minuteHand" class="clock-hand minute-hand"></span><span id="secondHand" class="clock-hand second-hand"></span><span class="clock-pivot"></span></div>
+      </div>
+      <time id="liveDate" class="board-date" aria-label="Today's date"></time>
     </header>
     <div id="boardFrame" class="board-frame">
       <canvas id="chalkCanvas" aria-label="Drawing canvas: use chalk to draw on the blackboard"></canvas>
       <div id="emptyBoard" class="board-empty" aria-hidden="true"><span>SMADBOD</span><small>Your teaching starts here.</small></div>
     </div>
-    <div class="left-tools" role="toolbar" aria-label="Blackboard tools">
+    <aside id="leftTools" class="left-tools" aria-label="Blackboard tools">
+      <button id="toggleTools" type="button" class="pencil-toggle" aria-label="Expand drawing tools" aria-controls="toolOptions" aria-expanded="false" title="Drawing tools">✎</button>
+      <div id="toolOptions" class="tool-options" role="toolbar" aria-label="Drawing and editing tools" aria-hidden="true">
       <button id="chalkTool" class="tool active" data-tool="chalk" title="Chalk" aria-label="Draw with chalk">✎</button>
       <button id="eraserTool" class="tool" data-tool="eraser" title="Eraser" aria-label="Erase strokes">▤</button>
       <button id="textTool" class="tool" data-tool="text" title="Add text" aria-label="Add text">T</button>
@@ -33,19 +41,24 @@
       <div class="tool-divider"></div>
       <label class="size-label" for="chalkWidth">Size</label>
       <input id="chalkWidth" type="range" min="2" max="14" value="4" aria-label="Chalk size">
-    </div>
+      <div class="tool-divider"></div>
+      <button class="tool tool-compact" type="button" data-bottom-action="undo" title="Undo" aria-label="Undo">↶</button>
+      <button class="tool tool-compact" type="button" data-bottom-action="redo" title="Redo" aria-label="Redo">↷</button>
+      <button class="tool tool-compact danger-icon" type="button" data-bottom-action="clearBoard" title="Clear board" aria-label="Clear board">✕</button>
+      </div>
+    </aside>
     <div class="right-actions">
       <button id="bell" class="bell" aria-label="Open teacher app library: six rapid taps" title="SMADBOD library"><span>🔔</span><span id="bellDots" class="bell-dots" aria-hidden="true"></span></button>
     </div>
     <footer class="board-footer">
       <div class="bottom-tools">
-        <button id="undo" class="bottom-btn" title="Undo">↶ <span>Undo</span></button>
-        <button id="redo" class="bottom-btn" title="Redo">↷ <span>Redo</span></button>
-        <button id="clearBoard" class="bottom-btn" title="Clear board">⌫ <span>Clear</span></button>
+        <button id="undo" class="bottom-btn" type="button" title="Undo" aria-label="Undo">↶</button>
+        <button id="redo" class="bottom-btn" type="button" title="Redo" aria-label="Redo">↷</button>
+        <button id="clearBoard" class="bottom-btn danger-icon" type="button" title="Clear board" aria-label="Clear board">✕</button>
       </div>
       <div class="bottom-tools">
-        <button id="boardList" class="bottom-btn" title="Saved boards">▤ <span>Boards</span></button>
-        <button id="saveBoard" class="bottom-btn primary"><span>⇩</span> Save board</button>
+        <button id="boardList" class="bottom-btn" type="button" title="View boards" aria-label="View boards">•••</button>
+        <button id="saveBoard" class="bottom-btn primary" type="button" title="Save board" aria-label="Save board">💾</button>
       </div>
     </footer>
   </section>
