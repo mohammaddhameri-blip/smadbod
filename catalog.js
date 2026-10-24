@@ -1,7 +1,7 @@
 window.SMADBOD_CATALOG=[
-{id:'attendance',label:'Attendance',icon:'▦',description:'Official 2026 roster · private work-PC handoff',apps:[
-{name:'Open Attendance · Skorskal',description:'Mark attendance once with the official 2026 pupil list and send an encrypted record to your work PC.',url:'https://mohammaddhameri-blip.github.io/skorskal-omr/?attendance=1',repository:'https://github.com/mohammaddhameri-blip/skorskal-omr'},
-{name:'Attendance Bridge · Chrome/Edge',description:'Private work-PC extension for notifications and MOEIS review. Installation instructions in GitHub.',repository:'https://github.com/mohammaddhameri-blip/smadbod/tree/main/bridge-extension'}
+{id:'attendance',label:'Attendance',icon:'▦',description:'SMADBOD Guest → Master approval',apps:[
+{name:'SMADBOD Guest attendance',description:'Mark absentees and send encrypted attendance to your SMADBOD Master work phone for approval.',url:'./attendance/index.html'},
+{name:'Master Android APK',description:'Work phone receiver: private inbox, approval and opening the KPM attendance page.',repository:'https://github.com/mohammaddhameri-blip/smadbod/tree/main/android'}
 ]},
 {id:'year2',label:'Year 2',icon:'✎',description:'Activities, drills and assessments',apps:[{name:'Year 2 Unit 9',description:'Teaching and learning materials',repository:'https://github.com/mohammaddhameri-blip/year-2-unit-9'},{name:'Year 2 Vocavia',description:'Vocabulary adventure, launch URL pending.',pending:true},{name:'Year 2 Writing and Homework',description:'Other drills and homework will be linked here.',pending:true}]},
 {id:'year5',label:'Year 5',icon:'▤',description:'English revision and assessments',apps:[{name:'UASA English Practice',description:'English revision exercises.',repository:'https://github.com/mohammaddhameri-blip/uasa-english-practice'},{name:'Part 6 Writing Drill',description:'Writing drill project.',repository:'https://github.com/mohammaddhameri-blip/part6-writing-drill'},{name:'Vocavia Year 5 & 6',description:'Upper primary vocabulary game.',repository:'https://github.com/mohammaddhameri-blip/vocavia-year5-6'}]},
