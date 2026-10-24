@@ -1,43 +1,36 @@
-# SMADBOD Master Android APK (personal use)
+# SMADBOD Guest and Master APKs
 
-A standalone native Android shell for your existing SMADBOD classroom blackboard and educational tools, with a **private attendance receiver** for your work phone.
+Two Android applications have distinct package IDs and can coexist on the same device:
 
-## Current features
+- **SMADBOD Guest** (`com.mrdhameri.smadbod.guest`): for the smartboard or another classroom device. Displays the SMADBOD blackboard and the Guest Attendance tile. The pupil list is encrypted in the public repository and can only be decrypted on the device with your private roster phrase. All pupils begin marked present. Untick absentees, optionally enter reasons, then send the record to the host's pairing code.
+- **SMADBOD Master** (`com.mrdhameri.smadbod`): for your personal work phone. Creates its own random pairing code (256-bit channel token plus a separate 256-bit AES encryption key) stored encrypted using Android Keystore. Checks for incoming encrypted attendance, shows native notifications and a private inbox, and requires **Host review → Approve and open** before navigating to the official KPM site.
 
-- Opens the existing SMADBOD GitHub Pages interface on your work phone.
-- **Pair phone** creates a random 256-bit bridge token plus a separate 256-bit AES-GCM decryption key, stored locally using Android Keystore encryption. The code is not committed to GitHub.
-- **Inbox** displays encrypted attendance packets after decryption on the phone, including date, class, present/absent totals, and the names/reasons for absentees.
-- Background notifications via Android WorkManager approximately every **15 minutes or later** (Android may delay them for battery/Doze). Foreground checks run every minute.
-- Tapping a notification opens the master APK attendance inbox and lets you inspect the record.
-- **Open MOEIS** launches the official attendance page in your normal browser. Sign in via idMe yourself if necessary. No automatic MOEIS form filling, clicking, saving, or submission occurs in this version.
-- **Remove from inbox** deletes a private handoff; it NEVER claims that official attendance has been confirmed.
-- No Firebase Cloud Messaging is configured; therefore near-instant closed-app alerts are **not guaranteed**. Firebase configuration and server-side device subscriptions would be needed for push delivery.
+## First-time setup
 
-## Pairing and usage
+1. Install **SMADBOD Master** on your personal work phone. Allow Android notifications.
+2. In Master, tap **Pair phone → Copy pairing code**.
+3. Install **SMADBOD Guest** on the classroom smartboard/device, or open [Guest in a browser](https://mohammaddhameri-blip.github.io/smadbod/attendance/index.html).
+4. Open SMADBOD's app library (six quick bell taps), then **Attendance**.
+5. Unlock the encrypted roster using the private access phrase. This phrase stays on the Guest device.
+6. Paste the code from Master into the Guest's pairing field. A Chrome/Edge PC receiver code may go on another line.
+7. Choose Year, Class and Date. All pupils are present initially; untick absentees and enter optional reasons.
+8. Tap **Send to Master for approval**. The Guest encrypts a separate packet for each paired receiver and transmits it.
+9. On your work phone, open the Master notification/inbox. Inspect absentees, select **Host review**, and explicitly **Approve and open**.
+10. Master opens the official [MOEIS attendance page](https://moeispel.moe.gov.my/sahsiah/kehadiran/tabguru) in your usual browser. Sign in normally, verify and complete the official attendance in MOEIS.
 
-1. On your work phone, install the signed `SMADBOD-Master.apk` from the repository's `master-android-latest` release.
-2. Open the master APK and grant the Android notification permission.
-3. Tap **Pair phone** and **Copy pairing code**.
-4. On the device where you mark attendance, open SMADBOD → Attendance. This opens Skorskal's encrypted 2026 roster.
-5. Unlock Skorskal's roster, select Year / Class / Date, and untick pupils who are absent.
-6. Under **SMADBOD Attendance Bridge**, paste your master-phone pairing code. If you also have a paired work-PC Chrome/Edge extension, paste its **different** code on another line (up to three receiver codes).
-7. Tap **Send to work PC** (the control now supports PC and phone recipients). The pupil list is independently AES-GCM encrypted to each recipient's key and transmitted as ciphertext.
-8. While the master APK is open, it checks every minute. When it is closed, Android's background work checks approximately every 15 minutes, sometimes later. Tap the notification or open **Inbox** to review the attendance.
-9. Tap **Open MOEIS**, sign in normally if needed, and enter/review/approve the attendance in the official system yourself.
+**This beta does not automatically populate or submit the MOEIS form.** A Host approval initiates authorised review, **not** an official attendance update. Achieving scroll-free official submission requires inspecting the authenticated interface and establishing that KPM permits browser form automation.
 
-## Important restrictions
+## Privacy and background notifications
 
-- A notification **does not mean MOEIS has been updated**. The official system remains authoritative.
-- The SMADBOD GitHub Pages site and source repository are publicly visible; the attendance pairing secrets and decrypted pupil details are not in the source. Only use attendance transfer if your school permits sending encrypted pupil data via the approved device/network.
-- Avoid copying your pairing code into chat, screenshots, public repositories, or another person's device. Rotate it if compromised.
-- AES-GCM encrypted packets expire on the server within 72 hours (expiry enforced in reads; cleanup on subsequent requests).
-- A long pairing string remains in Android's clipboard until replaced; avoid leaving it there.
-- Android notifications may be disabled or delayed by permission/battery policy. Enable notifications in system settings.
-- The sender currently reuses Skorskal's official roster and attendance checklist; SMADBOD does not duplicate the school's pupil list.
-- For true near-instant **push** delivery when the app is closed, we need an authorised Firebase project with Cloud Messaging, plus secure server-side subscription and dispatch. WorkManager cannot provide 1-minute background checks.
+- No idMe password, MOEIS session or pupil roster passphrase is placed in GitHub or on the encrypted queue.
+- The official encrypted roster is bundled as a ciphertext-only file in the Guest webapp; names are decrypted **only in the Guest session**.
+- The pairing secret is never in repository code. It is encrypted in Master, and Guest remembers it only in the current browser session unless you explicitly opt to remember on a personally controlled classroom device.
+- Android WorkManager polls approximately every **15 minutes or later** when Master is backgrounded, and about every minute while Master is open. Push notifications close to real time require separately configured Firebase Cloud Messaging.
+- Encrypted packets expire after 72 hours. Dismissing the message deletes its ciphertext from the queue; this is **not** an official KPM approval.
+- Keep both APKs private and follow your school’s policy on processing pupil records.
 
-## Build
+## Releases and updates
 
-The `.github/workflows/build-master-android.yml` GitHub Actions workflow builds and signs a release APK. Its signer is cached and verified against the stable release fingerprint. Install future releases from the same channel to preserve local pairing.
+The GitHub workflow `.github/workflows/build-master-android.yml` builds and publisher-signs both APKs. You can download them from the [SMADBOD APK release](https://github.com/mohammaddhameri-blip/smadbod/releases/tag/master-android-latest).
 
-The master Android application lives under `android/`, with unique package name `com.mrdhameri.smadbod`. Its package is distinct from the Skorskal Android APK.
+Master and Guest package IDs differ so they cannot be mistaken for one another. Future builds use the same publisher signing certificate when that key is retained. Download any new version from the verified GitHub release; Android requires approval to install it.
