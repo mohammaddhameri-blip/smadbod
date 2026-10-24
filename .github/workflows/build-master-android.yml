@@ -1,4 +1,4 @@
-name: Build SMADBOD Master APK
+name: Build SMADBOD Guest and Master APKs
 on:
   push:
     branches: [main]
@@ -64,8 +64,8 @@ jobs:
         with:
           path: ~/.android/smadbod-publisher.keystore
           key: smadbod-master-stable-publisher-v1
-      - name: Build signed master APK
-        run: gradle --no-daemon -p android :app:assembleRelease
+      - name: Build signed guest and master APKs
+        run: gradle --no-daemon -p android :app:assembleRelease :guest:assembleRelease
       - name: Verify APK signature and checksum
         shell: bash
         run: |
@@ -75,10 +75,18 @@ jobs:
           test "$HASH" = "$MASTER_SIGNER_SHA256"
           cp "$APK" SMADBOD-Master.apk
           sha256sum SMADBOD-Master.apk > SMADBOD-Master.apk.sha256
+          GUEST=android/guest/build/outputs/apk/release/guest-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$GUEST" > guest-signature.txt
+          GUEST_HASH=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' guest-signature.txt | head -n1 | tr '[:lower:]' '[:upper:]')
+          test "$GUEST_HASH" = "$MASTER_SIGNER_SHA256"
+          cp "$GUEST" SMADBOD-Guest.apk
+          sha256sum SMADBOD-Guest.apk > SMADBOD-Guest.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: SMADBOD-Master-APK
-          path: SMADBOD-Master.apk
+          name: SMADBOD-Guest-and-Master-APKs
+          path: |
+            SMADBOD-Master.apk
+            SMADBOD-Guest.apk
           if-no-files-found: error
       - name: Publish latest official master APK
         env:
@@ -87,9 +95,9 @@ jobs:
         run: |
           TAG=master-android-latest
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" SMADBOD-Master.apk SMADBOD-Master.apk.sha256 --clobber
+            gh release upload "$TAG" SMADBOD-Master.apk SMADBOD-Master.apk.sha256 SMADBOD-Guest.apk SMADBOD-Guest.apk.sha256 --clobber
           else
-            gh release create "$TAG" SMADBOD-Master.apk SMADBOD-Master.apk.sha256 \
+            gh release create "$TAG" SMADBOD-Master.apk SMADBOD-Master.apk.sha256 SMADBOD-Guest.apk SMADBOD-Guest.apk.sha256 \
               --target "$GITHUB_SHA" --title "SMADBOD Master Android APK" \
               --notes "Preparing master update metadata" --prerelease
           fi
@@ -97,7 +105,7 @@ jobs:
           MASTER_VERSION_NAME=0.4.$GITHUB_RUN_NUMBER
           MASTER_SIGNER_SHA256=$MASTER_SIGNER_SHA256
           
-          Personal master SMADBOD APK. Includes a background attendance inbox.
+          SMADBOD Guest APK: attendance checklist and encrypted host handoff.\n          SMADBOD Master APK: work-phone inbox with required host review before MOEIS navigation.
           Background polling approximately every 15 minutes or later due to Android scheduling.
           MOEIS opens for manual login, review and submission; no automatic editing.
           Android package installer confirms each update."
