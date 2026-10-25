@@ -1,6 +1,11 @@
 package com.mrdhameri.smadbod.guest;
 
 import android.app.Activity;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.webkit.WebChromeClient;
+import android.webkit.PermissionRequest;
 import android.content.Intent;
 import android.graphics.Color;
 import android.content.res.ColorStateList;
@@ -17,6 +22,8 @@ import android.widget.Toast;
 
 public final class GuestActivity extends Activity {
     private WebView web;
+    private PermissionRequest pendingCameraRequest;
+    private static final int CAMERA_PERMISSION=472;
     private UpdateManager updates;
     private static final String ROOT = "https://mohammaddhameri-blip.github.io/smadbod/";
     @Override public void onCreate(Bundle state) {
@@ -55,6 +62,28 @@ public final class GuestActivity extends Activity {
         web.getSettings().setDomStorageEnabled(true);
         web.getSettings().setAllowFileAccess(false);
         web.getSettings().setAllowContentAccess(false);
+        web.setWebChromeClient(new WebChromeClient(){
+            @Override public void onPermissionRequest(PermissionRequest request){
+                runOnUiThread(()->{
+                    Uri origin=request.getOrigin();
+                    if(origin==null||!"https".equalsIgnoreCase(origin.getScheme())
+                        ||!"mohammaddhameri-blip.github.io".equalsIgnoreCase(origin.getHost())){
+                        request.deny();return;
+                    }
+                    boolean camera=false;
+                    for(String resource:request.getResources())
+                        if(PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource))camera=true;
+                    if(!camera){request.deny();return;}
+                    if(checkSelfPermission(Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED)
+                        request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                    else{
+                        if(pendingCameraRequest!=null)pendingCameraRequest.deny();
+                        pendingCameraRequest=request;
+                        requestPermissions(new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION);
+                    }
+                });
+            }
+        });
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
@@ -68,6 +97,14 @@ public final class GuestActivity extends Activity {
         });
         web.loadUrl(ROOT);
     }
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){
+        super.onRequestPermissionsResult(requestCode,permissions,results);
+        if(requestCode!=CAMERA_PERMISSION||pendingCameraRequest==null)return;
+        PermissionRequest request=pendingCameraRequest;pendingCameraRequest=null;
+        if(results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED)
+            request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+        else request.deny();
+    }
     @Override protected void onResume() {
         super.onResume();
         if(updates!=null)updates.onResume();
@@ -77,6 +114,7 @@ public final class GuestActivity extends Activity {
         super.onBackPressed();
     }
     @Override public void onDestroy() {
+        if(pendingCameraRequest!=null){pendingCameraRequest.deny();pendingCameraRequest=null;}
         if(web != null) web.destroy();
         super.onDestroy();
     }
