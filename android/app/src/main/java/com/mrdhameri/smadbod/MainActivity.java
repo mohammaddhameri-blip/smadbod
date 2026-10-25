@@ -136,10 +136,10 @@ public final class MainActivity extends Activity {
     private void displayPair(String code){
         LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);layout.setPadding(22,12,22,4);
         TextView help=new TextView(this);help.setText(
-            "1. Open SMADBOD Guest → Attendance.\\n"+
-            "2. Unlock the roster, choose a class and date.\\n"+
-            "3. Paste this Master's code into Send to Master.\\n"+
-            "4. Mark absentees and send for your approval.\\n\\n"+
+            "1. Open SMADBOD Guest → Attendance.\n"+
+            "2. Unlock the roster, choose a class and date.\n"+
+            "3. Paste this Master's code into Send to Master.\n"+
+            "4. Mark absentees and send for your approval.\n\n"+
             "Keep the pairing code private. It is NOT a KPM login.");
         help.setTextSize(14);layout.addView(help);
         TextView secret=new TextView(this);
