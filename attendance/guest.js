@@ -18,6 +18,85 @@ $('date').value=localDate();$('year').value='5';$('classCode').value='T';
 try{$('pairing').value=sessionStorage.getItem(PAIR_MEMORY)||localStorage.getItem(PAIR_MEMORY)||'';
  $('rememberPair').checked=Boolean(localStorage.getItem(PAIR_MEMORY));}catch{}
 function notify(id,text){$(id).textContent=text}
+// The QR and share link transport the existing encrypted-queue pairing capability.
+// Never send pairing secrets to QR websites or leak an imported secret in the address bar.
+function extractPair(raw){
+ const v=String(raw||'').trim();
+ if(!v.startsWith('https://'))return v;
+ const u=new URL(v);
+ if(u.origin!==location.origin||!u.pathname.endsWith('/smadbod/attendance/index.html'))throw Error('Use an official SMADBOD invitation.');
+ return new URLSearchParams(u.hash.slice(1)).get('pair')||'';
+}
+function readPairs(){
+ const parts=$('pairing').value.split(/[\n\r,;]+/).map(x=>x.trim()).filter(Boolean);
+ if(parts.length>3)throw Error('A maximum of three receivers is supported.');
+ return [...new Set(parts.map(v=>{const code=extractPair(v);parsePairing(code);return code;}))];
+}
+function pairFeedback(msg,status=''){
+ const el=$('pairStatus');el.textContent=msg;el.className='pair-status '+status;
+}
+function updatePairFeedback(){
+ try{const count=readPairs().length;
+ pairFeedback(count?count+' receiver'+(count===1?'':'s')+' ready. Send a record to test delivery.':'No Master paired. Open Pair phone on SMADBOD Master.',count?'ready':'');
+ }catch{pairFeedback('Pairing details incomplete. Scan the QR, paste the invite, or enter its entire code.','error');}
+}
+function acceptPair(raw){
+ const code=extractPair(raw);parsePairing(code);
+ $('pairing').value=code;document.querySelector('.pair-fallback').open=false;
+ try{sessionStorage.setItem(PAIR_MEMORY,code);
+  if($('rememberPair').checked)localStorage.setItem(PAIR_MEMORY,code);
+ }catch{}
+ pairFeedback('Master details received. Ready to send securely.','ready');
+}
+$('pairing').addEventListener('input',updatePairFeedback);
+$('savePair').addEventListener('click',()=>{
+ try{const codes=readPairs();if(!codes.length)throw Error('Scan or paste your Master details first.');
+  sessionStorage.setItem(PAIR_MEMORY,codes.join('\n'));
+  if($('rememberPair').checked)localStorage.setItem(PAIR_MEMORY,codes.join('\n'));
+  else localStorage.removeItem(PAIR_MEMORY);
+  pairFeedback('Pairing saved on this device. Send attendance to test delivery.','ready');
+ }catch(e){pairFeedback(e.message,'error');}
+});
+$('pastePair').addEventListener('click',async()=>{
+ try{if(!navigator.clipboard?.readText)throw Error('Clipboard access unavailable. Long-press the manual entry field and paste.');
+  acceptPair(await navigator.clipboard.readText());
+ }catch(e){pairFeedback(e.message||'Paste failed. Use manual entry.','error');document.querySelector('.pair-fallback').open=true;}
+});
+let qrStream=null,qrScanning=false;
+function stopQr(){
+ qrScanning=false;
+ if(qrStream){qrStream.getTracks().forEach(t=>t.stop());qrStream=null;}
+ const video=$('pairVideo');video.pause();video.srcObject=null;$('pairCameraArea').hidden=true;
+}
+$('stopPairCamera').addEventListener('click',stopQr);
+$('scanPair').addEventListener('click',async()=>{
+ stopQr();
+ try{
+  if(!('BarcodeDetector' in window))throw Error('QR scanning not supported here. Use clipboard or manual entry.');
+  if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera unavailable. Use clipboard or manual entry.');
+  const scanner=new BarcodeDetector({formats:['qr_code']});
+  qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+  const video=$('pairVideo');video.srcObject=qrStream;$('pairCameraArea').hidden=false;
+  await video.play();qrScanning=true;
+  $('pairCameraStatus').textContent='Aim your camera at the QR shown on Master.';
+  const scan=async()=>{
+   if(!qrScanning)return;
+   try{const codes=await scanner.detect(video);if(!qrScanning)return;
+    if(codes.length){acceptPair(codes[0].rawValue);stopQr();return;}
+   }catch(e){$('pairCameraStatus').textContent='Cannot read QR. Improve lighting or use Paste.';}
+   if(qrScanning)setTimeout(scan,280);
+  };scan();
+ }catch(e){stopQr();pairFeedback(e.message,'error');}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopQr();});
+try{
+ const invited=new URLSearchParams(location.hash.slice(1)).get('pair');
+ if(invited){
+  history.replaceState(null,'',location.pathname+location.search);
+  try{acceptPair(invited)}catch(e){pairFeedback(e.message,'error');}
+ }else updatePairFeedback();
+}catch{updatePairFeedback();}
+
 function sessionKey(){return $('date').value+'|'+$('year').value+'|'+$('classCode').value}
 function readDraft(){
  try{let drafts=JSON.parse(sessionStorage.getItem(DRAFT)||'{}');let draft=drafts[sessionKey()];
@@ -145,18 +224,17 @@ $('markAll').addEventListener('click',()=>{
 $('forget').addEventListener('click',()=>{
  $('pairing').value='';$('rememberPair').checked=false;
  try{sessionStorage.removeItem(PAIR_MEMORY);localStorage.removeItem(PAIR_MEMORY)}catch{}
- notify('deliveryStatus','Receiver pairing cleared from this guest device.');
+ updatePairFeedback();stopQr();notify('deliveryStatus','Receiver pairing cleared from this guest device.');
 });
 $('send').addEventListener('click',async()=>{
  if(busy||!roster.length)return;
  const current=selected();
  if(!current.length){notify('deliveryStatus','Choose a class with registered pupils.');return}
  const drafts=readDraft(),absent=new Set(drafts.absent);
- const rawCodes=$('pairing').value.split(/[\n\r,;]+/).map(x=>x.trim()).filter(Boolean);
- const codes=[...new Set(rawCodes)];
+ let codes=[];
  try{
-  if(!codes.length||codes.length>3)throw Error('Enter 1–3 private Master/PC codes, one per line.');
-  for(const code of codes)parsePairing(code);
+  codes=readPairs();
+  if(!codes.length)throw Error('Pair the Master phone using QR, clipboard or manual entry first.');
  }catch(e){notify('deliveryStatus',e.message);return}
  const date=$('date').value,year=$('year').value,classCode=$('classCode').value;
  if(!/^20\d\d-\d\d-\d\d$/.test(date)){notify('deliveryStatus','Select a valid date.');return}
