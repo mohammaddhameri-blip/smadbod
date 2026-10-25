@@ -9,7 +9,7 @@
 <main>
  <section class="heading"><h1>Class attendance</h1><p>Everyone is present by default. Untick absent pupils, then send the record to the Master device.</p></section>
  <section id="unlockPane" class="panel"><h2>Unlock official 2026 pupil list</h2>
-  <div class="fields"><label>Staff roster access phrase<input id="rosterPhrase" type="password" autocomplete="off" placeholder="Enter private access phrase"></label>
+  <div class="fields"><label>Staff roster access phrase<input id="rosterPhrase" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Same private phrase as Skorskal"></label>
   <button id="unlock" class="primary" type="button">Unlock roster</button></div>
   <p id="rosterStatus" class="note" role="status">Names remain encrypted until unlocked on this device. The access phrase is never transmitted.</p>
  </section>
@@ -30,4 +30,4 @@
   <div class="actions"><button id="send" type="button" class="primary">🔔 Send to Master for approval</button><button id="forget" type="button" class="secondary">Forget pairing</button></div>
   <p id="deliveryStatus" class="note" role="status">Not sent. Only the Master may approve official processing.</p>
  </section>
-</main><script type="module" src="./guest.js"></script></body></html>
+</main><script type="module" src="./guest.js?v=20261025-rosterfix"></script></body></html>
