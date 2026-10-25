@@ -51,6 +51,7 @@ public final class MainActivity extends Activity {
         handler.postDelayed(this,60_000);
     }};
     private WebView web;
+    private UpdateManager updates;
     private boolean active=false;
 
     @Override public void onCreate(Bundle state){
@@ -64,9 +65,11 @@ public final class MainActivity extends Activity {
         Button inbox=button("🔔 Inbox");inbox.setOnClickListener(v->fetch(true,null));
         Button pairing=button("Pair phone");pairing.setOnClickListener(v->showPair());
         Button refresh=button("↻");refresh.setContentDescription("Check for attendance");refresh.setOnClickListener(v->fetch(true,null));
-        bar.addView(inbox,new LinearLayout.LayoutParams(0,48,1.15f));
-        bar.addView(pairing,new LinearLayout.LayoutParams(0,48,1.4f));
+        Button update=button("⬇ Update");update.setContentDescription("Check for new SMADBOD Master APK");update.setOnClickListener(v->updates.checkForUpdates(true));
+        bar.addView(inbox,new LinearLayout.LayoutParams(0,48,1.0f));
+        bar.addView(pairing,new LinearLayout.LayoutParams(0,48,1.15f));
         bar.addView(refresh,new LinearLayout.LayoutParams(0,48,.55f));
+        bar.addView(update,new LinearLayout.LayoutParams(0,48,1.05f));
         page.addView(bar);
         web=new WebView(this);web.setBackgroundColor(Color.rgb(22,56,44));
         web.getSettings().setJavaScriptEnabled(true);
@@ -95,6 +98,8 @@ public final class MainActivity extends Activity {
         });
         page.addView(web,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1f));
         setContentView(page);
+        updates=new UpdateManager(this);
+        updates.checkForUpdates(false);
         web.loadUrl(HOME);
         setupPeriodic();
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
@@ -253,6 +258,7 @@ public final class MainActivity extends Activity {
     private void message(String text){Toast.makeText(this,text,Toast.LENGTH_LONG).show();}
     @Override protected void onResume(){
         super.onResume();active=true;
+        if(updates!=null)updates.onResume();
         handler.removeCallbacks(foregroundPoll);handler.post(foregroundPoll);
         if(getIntent()!=null&&"com.mrdhameri.smadbod.REVIEW".equals(getIntent().getAction())){
             String id=getIntent().getStringExtra("packet_id");
