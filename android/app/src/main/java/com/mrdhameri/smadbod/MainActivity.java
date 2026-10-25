@@ -108,6 +108,12 @@ public final class MainActivity extends Activity {
     }
     private boolean route(Uri uri){
         if(uri!=null&&"mohammaddhameri-blip.github.io".equalsIgnoreCase(uri.getHost())
+            &&"/smadbod/attendance/index.html".equals(uri.getPath())){
+            // On Master, Attendance must open the Host inbox, not the Guest checklist.
+            fetch(true,null);
+            return true;
+        }
+        if(uri!=null&&"mohammaddhameri-blip.github.io".equalsIgnoreCase(uri.getHost())
             &&uri.getPath()!=null&&uri.getPath().startsWith("/smadbod/"))return false;
         openExternal(uri);return true;
     }
