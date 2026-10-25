@@ -42,7 +42,6 @@ import java.util.concurrent.TimeUnit;
 
 public final class MainActivity extends Activity {
     private static final String HOME="https://mohammaddhameri-blip.github.io/smadbod/";
-    private static final String ATTENDANCE="https://mohammaddhameri-blip.github.io/skorskal-omr/?attendance=1";
     private static final String MOEIS="https://moeispel.moe.gov.my/sahsiah/kehadiran/tabguru";
     private final ExecutorService io=Executors.newSingleThreadExecutor();
     private final Handler handler=new Handler(Looper.getMainLooper());
@@ -63,7 +62,7 @@ public final class MainActivity extends Activity {
         LinearLayout bar=new LinearLayout(this);bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setPadding(7,6,7,6);bar.setBackgroundColor(Color.rgb(21,55,41));
         Button inbox=button("🔔 Inbox");inbox.setOnClickListener(v->fetch(true,null));
-        Button pairing=button("Pair phone");pairing.setOnClickListener(v->showPair());
+        Button pairing=button("Pair device");pairing.setOnClickListener(v->showPair());
         Button refresh=button("↻");refresh.setContentDescription("Check for attendance");refresh.setOnClickListener(v->fetch(true,null));
         Button update=button("⬇ Update");update.setContentDescription("Check for new SMADBOD Master APK");update.setOnClickListener(v->updates.checkForUpdates(true));
         bar.addView(inbox,new LinearLayout.LayoutParams(0,48,1.0f));
