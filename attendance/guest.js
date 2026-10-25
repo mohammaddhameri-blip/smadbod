@@ -115,7 +115,7 @@ function writeDraft(draft){
 // Retry Skorskal's official encrypted copy if this Guest device has a stale one.
 // No plaintext roster or passphrase is sent to either server.
 async function decryptRoster(secret){
- if(!secret||!secret.trim())throw Error('Enter the same private roster access phrase used in Skorskal.');
+ if(!secret||!secret.trim())throw Error('Enter the private SMADBOD roster access phrase.');
  if(!crypto?.subtle||!('DecompressionStream'in window))throw Error('Update Chrome or Android System WebView to unlock the roster.');
  const pass=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'PBKDF2',false,['deriveKey']);
  const sources=['./roster-2026.json','https://mohammaddhameri-blip.github.io/skorskal-omr/roster-2026.json'];
@@ -152,7 +152,7 @@ async function decryptRoster(secret){
   }catch{corrupt=true}
  }
  if(!available)throw Error('Could not load the encrypted 2026 roster. Connect to the internet and retry.');
- if(authenticationFailed)throw Error('Roster unlock failed. SMADBOD uses the SAME private phrase as Skorskal. Check capitals and spaces, then retry. If it unlocks in Skorskal but not here, update or refresh SMADBOD Guest.');
+ if(authenticationFailed)throw Error('Roster unlock failed. Check the private SMADBOD roster phrase (including capitals and spaces), then retry.');
  if(corrupt)throw Error('The encrypted roster could not be read. Please update or refresh SMADBOD Guest.');
  throw Error('Could not open the official 2026 roster.');
 }
