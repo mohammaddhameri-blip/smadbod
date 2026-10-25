@@ -12,6 +12,8 @@ Install the [Guest APK](https://github.com/mohammaddhameri-blip/smadbod/releases
 
 **Notifications:** Android WorkManager checks roughly every 15 minutes or later when backgrounded; when the Master is open it checks once per minute. True immediate background push needs FCM. Never share pairing codes, passwords or actual pupil records in the public repo.
 
+**Built-in APK updater (Guest and Master):** Each app automatically checks the publisher's `master-android-latest` GitHub release when launched. A newer version prompts for consent to download, checks the APK's SHA-256 checksum, package ID, version code and matching signing certificate, and then opens Android's installer for approval. A manual **⬇ Update** control also checks for updates. The existing installed app and its local data/pairing are preserved when updated in place with the same signing certificate. It does not silently install APKs or require any idMe credentials.
+
 ## Desktop PC extension (optional)
 
 The original Chrome/Edge [Attendance Bridge](bridge-extension/README.md) remains available as a second paired **receiver**. It does not send attendance or replace the Master phone.
