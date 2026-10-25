@@ -32,30 +32,50 @@ function writeDraft(draft){
   sessionStorage.setItem(DRAFT,JSON.stringify(data));
  }catch{}
 }
+// Skorskal and SMADBOD use the same encrypted roster and private access phrase.
+// Retry Skorskal's official encrypted copy if this Guest device has a stale one.
+// No plaintext roster or passphrase is sent to either server.
 async function decryptRoster(secret){
- if(!secret||!secret.trim())throw Error('Enter your private roster access phrase.');
- if(!crypto?.subtle||!('DecompressionStream'in window))throw Error('Update to a modern Chrome/Edge browser that supports secure roster access.');
- const res=await fetch('./roster-2026.json',{cache:'no-store'});
- if(!res.ok)throw Error('SMADBOD encrypted roster unavailable. Please refresh or reconnect.');
- const enc=await res.json();
- if(enc.academicYear!==2026||enc.algorithm!=='PBKDF2-SHA256-250000+AES-256-GCM+zlib')throw Error('Unsupported official roster format.');
+ if(!secret||!secret.trim())throw Error('Enter the same private roster access phrase used in Skorskal.');
+ if(!crypto?.subtle||!('DecompressionStream'in window))throw Error('Update Chrome or Android System WebView to unlock the roster.');
  const pass=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'PBKDF2',false,['deriveKey']);
- const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:byte64(enc.salt),iterations:250000,hash:'SHA-256'},pass,{name:'AES-GCM',length:256},false,['decrypt']);
- let raw;
- try{raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:byte64(enc.iv),additionalData:new TextEncoder().encode('skorskal-roster-2026')},key,byte64(enc.data));}
- catch{throw Error('Incorrect roster phrase or damaged encrypted roster.')}
- const stream=new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate'));
- const rows=JSON.parse(await new Response(stream).text());
- if(!Array.isArray(rows)||rows.length!==enc.count||rows.length<1)throw Error('Incomplete roster.');
- const ids=new Set();
- const pupils=rows.map(row=>{
-  if(!Array.isArray(row)||row.length!==4)throw Error('Invalid pupil record.');
-  const [year,classCode,examNo,name]=row.map(x=>String(x).trim());
-  const id=year+classCode+'-'+examNo;
-  if(!/^[1-6]$/.test(year)||!['C','G','T'].includes(classCode)||!/^[0-9]{2}$/.test(examNo)||!name||ids.has(id))throw Error('Invalid or duplicated pupil ID.');
-  ids.add(id);return {year,classCode,examNo,name,id};
- });
- return {pupils,version:enc.version};
+ const sources=['./roster-2026.json','https://mohammaddhameri-blip.github.io/skorskal-omr/roster-2026.json'];
+ let available=false,authenticationFailed=false,corrupt=false;
+ for(const source of sources){
+  let enc;
+  try{
+   const res=await fetch(source,{cache:'no-store'});
+   if(!res.ok)continue;
+   enc=await res.json();
+  }catch{continue}
+  available=true;
+  if(enc.academicYear!==2026||enc.algorithm!=='PBKDF2-SHA256-250000+AES-256-GCM+zlib'){
+   corrupt=true;continue;
+  }
+  let raw;
+  try{
+   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:byte64(enc.salt),iterations:250000,hash:'SHA-256'},pass,{name:'AES-GCM',length:256},false,['decrypt']);
+   raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:byte64(enc.iv),additionalData:new TextEncoder().encode('skorskal-roster-2026')},key,byte64(enc.data));
+  }catch{authenticationFailed=true;continue}
+  try{
+   const stream=new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate'));
+   const rows=JSON.parse(await new Response(stream).text());
+   if(!Array.isArray(rows)||rows.length!==enc.count||rows.length<1)throw Error('Incomplete roster');
+   const ids=new Set();
+   const pupils=rows.map(row=>{
+    if(!Array.isArray(row)||row.length!==4)throw Error('Invalid pupil record');
+    const [year,classCode,examNo,name]=row.map(x=>String(x).trim());
+    const id=year+classCode+'-'+examNo;
+    if(!/^[1-6]$/.test(year)||!['C','G','T'].includes(classCode)||!/^[0-9]{2}$/.test(examNo)||!name||ids.has(id))throw Error('Invalid or duplicated pupil ID');
+    ids.add(id);return {year,classCode,examNo,name,id};
+   });
+   return {pupils,version:enc.version};
+  }catch{corrupt=true}
+ }
+ if(!available)throw Error('Could not load the encrypted 2026 roster. Connect to the internet and retry.');
+ if(authenticationFailed)throw Error('Roster unlock failed. SMADBOD uses the SAME private phrase as Skorskal. Check capitals and spaces, then retry. If it unlocks in Skorskal but not here, update or refresh SMADBOD Guest.');
+ if(corrupt)throw Error('The encrypted roster could not be read. Please update or refresh SMADBOD Guest.');
+ throw Error('Could not open the official 2026 roster.');
 }
 $('unlock').addEventListener('click',async()=>{
  const button=$('unlock');button.disabled=true;
