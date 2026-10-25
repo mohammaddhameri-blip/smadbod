@@ -2,7 +2,7 @@
 
 ## Two separate SMADBOD device roles
 
-**SMADBOD Guest** (classroom smartboard, browser or Guest APK) collects the daily pupil attendance from the encrypted 2026 roster, with all pupils **present by default**. The teacher unticks absentees, optionally enters reasons, and presses **Send to Master**. Only ciphertext is transmitted, separately encrypted to each paired receiver. Staff access to the roster requires the private roster passphrase, which is never transmitted or included in the repository.
+**SMADBOD Guest** (classroom smartboard, browser or Guest APK) collects the daily pupil attendance from the encrypted 2026 roster, with all pupils **present by default**. The teacher unticks absentees, optionally enters reasons, and presses **Send to Master**. Only ciphertext is transmitted, separately encrypted to each paired receiver. Staff access to the roster requires the private SMADBOD roster phrase, which is never transmitted or included in the repository. Skorskal is exam-only and does not contain attendance or roster-access login.
 
 **SMADBOD Master** (personal work-phone APK) receives the attendance in its private inbox and notifies the host. The host reviews the date, class and absences, then must separately tap **Host review → Approve and open**. Only after that action does the Master open the official MOEIS page in the phone's browser.
 
@@ -13,6 +13,16 @@ Install the [Guest APK](https://github.com/mohammaddhameri-blip/smadbod/releases
 **Notifications:** Android WorkManager checks roughly every 15 minutes or later when backgrounded; when the Master is open it checks once per minute. True immediate background push needs FCM. Never share pairing codes, passwords or actual pupil records in the public repo.
 
 **Built-in APK updater (Guest and Master):** Each app automatically checks the publisher's `master-android-latest` GitHub release when launched. A newer version prompts for consent to download, checks the APK's SHA-256 checksum, package ID, version code and matching signing certificate, and then opens Android's installer for approval. A manual **⬇ Update** control also checks for updates. The existing installed app and its local data/pairing are preserved when updated in place with the same signing certificate. It does not silently install APKs or require any idMe credentials.
+
+## Easier device pairing (Guest + Master)
+
+1. On your work phone, open **SMADBOD Master → Pair device**. A private QR code appears, alongside **Copy invite link**, **Share invite**, and a hidden manual code.
+2. On the school smartboard/Guest phone, go to **Attendance → Connect to Master**. Select **Scan Master's QR**, or paste the invite link. If the browser lacks QR scanning or a camera, open the invitation link on the Guest browser or expand **Enter pairing code manually**.
+3. Choose **Keep pairing on this device** only for a trusted classroom device, then **Save pairing**. Otherwise, connection details remain temporary for the session.
+4. The Guest displays **Ready** after checking the pairing format. This is not a remote connection test; sending a sample record is the actual delivery check.
+5. Master receives encrypted attendance and requires explicit host review before opening MOEIS. The system does not auto-submit attendance to KPM.
+
+The shared invite/QR contains a sensitive long-lived pairing secret. Do not post it publicly. When importing an invite link, Guest removes it from the address bar. **New QR / reset** on Master invalidates previous pairing details on Guests.
 
 ## Desktop PC extension (optional)
 
