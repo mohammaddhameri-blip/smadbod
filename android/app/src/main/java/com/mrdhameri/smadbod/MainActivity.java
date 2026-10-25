@@ -136,19 +136,33 @@ public final class MainActivity extends Activity {
     private void displayPair(String code){
         LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);layout.setPadding(22,12,22,4);
         TextView help=new TextView(this);help.setText(
-            "Paste this private pairing code into Skorskal → Pupils → SMADBOD Attendance Bridge. "+
-            "Use a separate code for your PC, one per line. Do not share your code publicly.");
+            "1. Open SMADBOD Guest → Attendance.\\n"+
+            "2. Unlock the roster, choose a class and date.\\n"+
+            "3. Paste this Master's code into Send to Master.\\n"+
+            "4. Mark absentees and send for your approval.\\n\\n"+
+            "Keep the pairing code private. It is NOT a KPM login.");
         help.setTextSize(14);layout.addView(help);
-        TextView secret=new TextView(this);secret.setText(code);secret.setTextSize(13);secret.setTextIsSelectable(true);
-        secret.setPadding(4,18,4,18);layout.addView(secret);
+        TextView secret=new TextView(this);
+        secret.setText("Pairing code hidden");
+        secret.setTextSize(13);
+        secret.setPadding(4,12,4,8);
+        layout.addView(secret);
+        Button reveal=button("Show code");
+        reveal.setOnClickListener(v->{
+            boolean visible="Hide code".contentEquals(reveal.getText());
+            secret.setText(visible?"Pairing code hidden":code);
+            secret.setTextIsSelectable(!visible);
+            reveal.setText(visible?"Show code":"Hide code");
+        });
+        layout.addView(reveal);
         new AlertDialog.Builder(this).setTitle("Master phone pairing")
             .setView(layout)
-            .setPositiveButton("Copy pairing code",(d,w)->{
+            .setPositiveButton("Copy code",(d,w)->{
                 ClipboardManager cm=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
                 if(cm!=null)cm.setPrimaryClip(ClipData.newPlainText("SMADBOD private pairing",code));
                 message("Copied. Clear the clipboard after pairing.");
             })
-            .setNeutralButton("Generate new code",(d,w)->
+            .setNeutralButton("New code",(d,w)->
                 new AlertDialog.Builder(this).setMessage(
                     "Replace this phone's private pairing? The old code will stop receiving new attendance.")
                     .setPositiveButton("Replace",(a,b)->io.execute(()->{
