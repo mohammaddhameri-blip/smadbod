@@ -103,9 +103,11 @@ jobs:
           fi
           gh release edit "$TAG" --notes "MASTER_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
           MASTER_VERSION_NAME=0.4.$GITHUB_RUN_NUMBER
+          GUEST_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
+          GUEST_VERSION_NAME=0.4.$GITHUB_RUN_NUMBER
           MASTER_SIGNER_SHA256=$MASTER_SIGNER_SHA256
           
           SMADBOD Guest APK: attendance checklist and encrypted host handoff.\n          SMADBOD Master APK: work-phone inbox with required host review before MOEIS navigation.
           Background polling approximately every 15 minutes or later due to Android scheduling.
           MOEIS opens for manual login, review and submission; no automatic editing.
-          Android package installer confirms each update."
+          Both APKs check for updates on launch and offer a manual update check.\n          Each update requires an explicit download confirmation, SHA-256 and signing verification, and Android package-installer approval."
