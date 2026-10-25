@@ -144,43 +144,73 @@ public final class MainActivity extends Activity {
             }catch(Exception e){runOnUiThread(()->message("Device pairing unavailable. Check Android security settings."));}
         });
     }
+    private String pairingInvite(String code){
+        return "https://mohammaddhameri-blip.github.io/smadbod/attendance/index.html#pair="+code;
+    }
+    private android.graphics.Bitmap pairingQr(String invite) throws Exception {
+        com.google.zxing.common.BitMatrix bits=new com.google.zxing.qrcode.QRCodeWriter()
+            .encode(invite,com.google.zxing.BarcodeFormat.QR_CODE,560,560);
+        android.graphics.Bitmap bmp=android.graphics.Bitmap.createBitmap(560,560,android.graphics.Bitmap.Config.ARGB_8888);
+        for(int y=0;y<560;y++)for(int x=0;x<560;x++)
+            bmp.setPixel(x,y,bits.get(x,y)?Color.BLACK:Color.WHITE);
+        return bmp;
+    }
+    private void sharePair(String invite){
+        Intent i=new Intent(Intent.ACTION_SEND);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_TEXT,invite);
+        try{startActivity(Intent.createChooser(i,"Share private SMADBOD invite"));}
+        catch(Exception e){message("Sharing unavailable. Use Copy invite instead.");}
+    }
     private void displayPair(String code){
-        LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);layout.setPadding(22,12,22,4);
-        TextView help=new TextView(this);help.setText(
-            "1. Open SMADBOD Guest → Attendance.\n"+
-            "2. Unlock the roster, choose a class and date.\n"+
-            "3. Paste this Master's code into Send to Master.\n"+
-            "4. Mark absentees and send for your approval.\n\n"+
-            "Keep the pairing code private. It is NOT a KPM login.");
+        String invite=pairingInvite(code);
+        ScrollView scroll=new ScrollView(this);
+        LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);layout.setPadding(22,12,22,16);
+        scroll.addView(layout);
+        TextView help=new TextView(this);
+        help.setText("Connect a trusted Guest device:\n\n1. Open Guest → Attendance → Connect to Master.\n2. Point Guest camera at this QR, or share the invite link.\n3. Check its pairing status, then send a test attendance record.\n\nPairing does not approve or submit KPM attendance. Keep this QR and invite private.");
         help.setTextSize(14);layout.addView(help);
+        try{
+            android.widget.ImageView image=new android.widget.ImageView(this);
+            image.setContentDescription("Private SMADBOD pairing QR code. Scan on your trusted Guest device.");
+            image.setImageBitmap(pairingQr(invite));
+            image.setAdjustViewBounds(true);
+            LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,520);
+            params.topMargin=12;layout.addView(image,params);
+        }catch(Exception e){
+            TextView unavailable=new TextView(this);
+            unavailable.setText("QR unavailable on this device. Use Copy invite or Share invite.");
+            layout.addView(unavailable);
+        }
+        Button share=button("Share invite");
+        share.setOnClickListener(v->sharePair(invite));layout.addView(share);
+        Button copy=button("Copy invite link");
+        copy.setOnClickListener(v->{
+            ClipboardManager cm=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+            if(cm!=null)cm.setPrimaryClip(ClipData.newPlainText("Private SMADBOD pairing invitation",invite));
+            message("Invite copied. Paste only on a trusted Guest device.");
+        });layout.addView(copy);
         TextView secret=new TextView(this);
-        secret.setText("Pairing code hidden");
-        secret.setTextSize(13);
-        secret.setPadding(4,12,4,8);
-        layout.addView(secret);
-        Button reveal=button("Show code");
+        secret.setText("Manual pairing code hidden");
+        secret.setPadding(4,12,4,8);secret.setTextSize(12);layout.addView(secret);
+        Button reveal=button("Show manual code");
         reveal.setOnClickListener(v->{
-            boolean visible="Hide code".contentEquals(reveal.getText());
-            secret.setText(visible?"Pairing code hidden":code);
-            secret.setTextIsSelectable(!visible);
-            reveal.setText(visible?"Show code":"Hide code");
-        });
-        layout.addView(reveal);
-        new AlertDialog.Builder(this).setTitle("Master phone pairing")
-            .setView(layout)
-            .setPositiveButton("Copy code",(d,w)->{
-                ClipboardManager cm=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
-                if(cm!=null)cm.setPrimaryClip(ClipData.newPlainText("SMADBOD private pairing",code));
-                message("Copied. Clear the clipboard after pairing.");
-            })
-            .setNeutralButton("New code",(d,w)->
-                new AlertDialog.Builder(this).setMessage(
-                    "Replace this phone's private pairing? The old code will stop receiving new attendance.")
-                    .setPositiveButton("Replace",(a,b)->io.execute(()->{
-                        try{String result=BridgeClient.newPair(this);runOnUiThread(()->displayPair(result));}
-                        catch(Exception ignored){runOnUiThread(()->message("Unable to replace pairing."));}
-                    })).setNegativeButton("Cancel",null).show())
-            .setNegativeButton("Close",null).show();
+            boolean hide="Hide manual code".contentEquals(reveal.getText());
+            secret.setText(hide?"Manual pairing code hidden":code);
+            secret.setTextIsSelectable(!hide);
+            reveal.setText(hide?"Show manual code":"Hide manual code");
+        });layout.addView(reveal);
+        new AlertDialog.Builder(this).setTitle("Connect SMADBOD Guest")
+            .setView(scroll)
+            .setNeutralButton("New QR / reset", (d,w)->new AlertDialog.Builder(this)
+                .setTitle("Replace pairing?")
+                .setMessage("Old Guest devices will stop sending to this Master until paired again.")
+                .setPositiveButton("Replace", (a,b)->io.execute(()->{
+                    try{String fresh=BridgeClient.newPair(this);runOnUiThread(()->displayPair(fresh));}
+                    catch(Exception ignored){runOnUiThread(()->message("Unable to replace pairing."));}
+                }))
+                .setNegativeButton("Cancel",null).show())
+            .setPositiveButton("Done",null).show();
     }
     private void fetch(boolean showInbox,String selectedId){
         if(!active&&!showInbox)return;
